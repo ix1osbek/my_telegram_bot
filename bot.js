@@ -1,5 +1,6 @@
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
+const { GoogleGenerativeAI } = require("@google/generative-ai")
 const express = require("express");
 
 const app = express();
@@ -15,6 +16,8 @@ app.listen(PORT, () => {
 
 // === Bot setup ===
 const bot = new TelegramBot(process.env.TOKEN, { polling: true });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-pro-latest" });
 
 // /start
 bot.onText(/\/start/, async (msg) => {
@@ -53,6 +56,7 @@ bot.on("contact", async (msg) => {
                 keyboard: [
                     [{ text: "📱 Ijtimoiy tarmoqlar" }],
                     [{ text: "📡 Fikr.log Kanali" }],
+                    [{ text: "🦾 AI Yordamchi" }],
                 ],
                 resize_keyboard: true,
             },
@@ -88,6 +92,29 @@ bot.on("message", async (msg) => {
                 ],
             },
         });
+    }
+
+
+    //////// AI uchun
+
+    if (msg.text === "🦾 AI Yordamchi") {
+        await bot.sendMessage(chatId, "Marhamat savolingiz bo'lsa yo'llang sizga AI yordamchi javob beradi.")
+        bot.on("message", async (msg) => {
+            const chatId = msg.chat.id
+            const userText = msg.text
+            await bot.sendMessage(chatId, "✳️Iltimos kuting, javob yozilmoqda...");
+
+            try {
+                const result = await model.generateContent(userText);
+                const response = result.response.text();
+                await bot.sendMessage(chatId, response, {
+                  parse_mode: "Markdown"
+                });
+            } catch (error) {
+                console.error("Xatolik:", error.message);
+                await bot.sendMessage(chatId, "❌ Javob olishda xatolik yuz berdi.");
+            }
+        })
     }
 });
 
