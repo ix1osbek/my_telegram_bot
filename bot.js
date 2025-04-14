@@ -34,9 +34,9 @@ bot.on("contact", async (msg) => {
         bot.sendMessage(msg.chat.id, `Marxamat, quyidagilardan birini tanlashingiz mumkin!`, {
             reply_markup: {
                 keyboard: [
-                    [{ text: "Ijtimoiy tarmoqlar" }],
-                    [{ text: `"Fikr.log();" Kanali` }],
-                    [{ text: `Obunachilar soni` }],
+                    [{ text: "📱 Ijtimoiy tarmoqlar" }],
+                    [{ text: `📡 "Fikr.log" Kanali` }],
+
 
                 ],
                 resize_keyboard: true,
@@ -53,20 +53,20 @@ bot.on("contact", async (msg) => {
 bot.on("message", async (msg) => {
     try {
         const chatId = msg.chat.id
-        if (msg.text === `"Fikr.log();" Kanali`) {
+        if (msg.text === `📡 "Fikr.log" Kanali`) {
             bot.sendPhoto(chatId, "./img/channel.jpg", {
                 contentType: "image/jpeg",
-                caption: "Kanalga qo'shilish uchun tugmani bosing va admin qo'shilish so'rovingizni tasdiqlashini kuting!",
+                caption: "Kanalga qo'shilish uchun tugmani bosing va admin qo'shilish so'rovingizni tasdiqlashini kuting!⏳",
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: "Kanalga o'tish", url: "https://t.me/+bP5TvAf9eStkZThi" }]
+                        [{ text: "📡Kanalga o'tish", url: "https://t.me/+bP5TvAf9eStkZThi" }]
                     ]
                 }
             })
         }
 
-        if (msg.text === "Ijtimoiy tarmoqlar") {
-            bot.sendMessage(chatId, "O'zingizga kerakli ijtimoiy tarmoqni tanlang!", {
+        if (msg.text === "📱 Ijtimoiy tarmoqlar") {
+            bot.sendMessage(chatId, "O'zingizga kerakli ijtimoiy tarmoqni tanlang⬇️", {
                 reply_markup: {
                     inline_keyboard: [
 
@@ -116,7 +116,7 @@ bot.on("message", async (msg) => {
             }
             if (query.data === "instagram") {
                 bot.answerCallbackQuery(query.id, {
-                    text: "Hozirda Instagramda faoliyat olib bormayapman!",
+                    text: "Hozirda Instagramda faoliyat olib bormayapman🙁",
                     show_alert: true
                 });
             }
@@ -124,21 +124,21 @@ bot.on("message", async (msg) => {
 
             if (query.data === "facebook") {
                 bot.answerCallbackQuery(query.id, {
-                    text: "Hozirda Facebookda faoliyat olib bormayapman!",
+                    text: "Hozirda Facebookda faoliyat olib bormayapman🙁",
                     show_alert: true
                 });
             }
 
             if (query.data === "back_to_social") {
                 bot.deleteMessage(query.message.chat.id, query.message.message_id)
-                bot.sendMessage(query.message.chat.id, "O'zingizga kerakli ijtimoiy tarmoqni tanlang!", {
+                bot.sendMessage(query.message.chat.id, "O'zingizga kerakli ijtimoiy tarmoqni tanlang⬇️", {
                     reply_markup: {
                         inline_keyboard: [
 
-                            [{ text: "Telegram", callback_data: "telegram" }],
-                            [{ text: "GitHub", callback_data: "github" }],
-                            [{ text: "Instagram", callback_data: "instagram" }],
-                            [{ text: "Facebook", callback_data: "facebook" }],
+                            [{ text: "📱Telegram", callback_data: "telegram" }],
+                            [{ text: "📱GitHub", callback_data: "github" }],
+                            [{ text: "📱Instagram", callback_data: "instagram" }],
+                            [{ text: "📱Facebook", callback_data: "facebook" }],
 
                         ]
                     }
