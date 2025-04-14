@@ -21,7 +21,7 @@ bot.onText(/\/start/, async (msg) => {
     try {
         bot.sendMessage(
             msg.chat.id,
-           ` Assalomu aleykum <b> ${ msg.chat.first_name }</b>, botdan to'liq foydalanish uchun iltimos telefon raqamingizni jo'nating!`,
+            ` Assalomu aleykum <b> ${msg.chat.first_name}</b>, botdan to'liq foydalanish uchun iltimos telefon raqamingizni jo'nating!`,
             {
                 reply_markup: {
                     keyboard: [
@@ -41,29 +41,25 @@ bot.onText(/\/start/, async (msg) => {
 // Kontakt yuborilganda
 bot.on("contact", async (msg) => {
     try {
-        const fullName =` ${ msg.from.first_name || ""
-    } ${ msg.from.last_name || "" }.trim();`
-    const username = msg.from.username || "Foydalanuvchi username kiritmagan!";
-    const phone = msg.contact.phone_number;
+        const fullName = `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim();
+        const username = msg.from.username || "Foydalanuvchi username kiritmagan!"
+        const phone = msg.contact.phone_number;
+        bot.sendMessage(process.env.CHANEL_ID, `📥 Yangi foydalanuvchi ro'yxatdan o'tdi:\n\n👤 Ismi: <b>${fullName}</b>\n📞 Raqami: <b>+${phone}</b> \n🌏Username: @${username}`, {
+            parse_mode: "HTML"
+        });
 
-    bot.sendMessage(
-        process.env.CHANEL_ID,
-     ` 📥 Yangi foydalanuvchi ro'yxatdan o'tdi: \n\n👤 Ismi: <b>${fullName}</b>\n📞 Raqami: <b>+${phone}</b>\n🌏 Username: @${ username }`,
-        { parse_mode: "HTML" }
-    );
-
-    bot.sendMessage(msg.chat.id, "Marxamat, quyidagilardan birini tanlashingiz mumkin!", {
-        reply_markup: {
-            keyboard: [
-                [{ text: "📱 Ijtimoiy tarmoqlar" }],
-                [{ text: "📡 Fikr.log Kanali" }],
-            ],
-            resize_keyboard: true,
-        },
-    });
-} catch (error) {
-    console.error("Error: " + error.message);
-}
+        bot.sendMessage(msg.chat.id, "Marxamat, quyidagilardan birini tanlashingiz mumkin!", {
+            reply_markup: {
+                keyboard: [
+                    [{ text: "📱 Ijtimoiy tarmoqlar" }],
+                    [{ text: "📡 Fikr.log Kanali" }],
+                ],
+                resize_keyboard: true,
+            },
+        });
+    } catch (error) {
+        console.error("Error: " + error.message);
+    }
 });
 
 // Message listener
