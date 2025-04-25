@@ -1,172 +1,243 @@
-require("dotenv").config();
-const TelegramBot = require("node-telegram-bot-api");
+require("dotenv").config()
+const TelegramBot = require("node-telegram-bot-api")
+const express = require("express")
 const { GoogleGenerativeAI } = require("@google/generative-ai")
-const express = require("express");
+const path = require("path")
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const app = express()
+const PORT = process.env.PORT || 3000
 
 app.get("/", (req, res) => {
-    res.send("Bot ishga tushdi!");
-});
+    res.send("Bot ishga tushdi!")
+})
 
 app.listen(PORT, () => {
-    console.log(`Server ishga tushdi: ${PORT}`);
-});
+    console.log(`Server ishga tushdi: ${PORT}`)
+})
 
-// === Bot setup ===
-const bot = new TelegramBot(process.env.TOKEN, { polling: true });
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-pro-latest" });
+// === Bot va AI setup ===
+const bot = new TelegramBot(process.env.TOKEN, { polling: true })
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-pro-latest" })
 
-// /start
-bot.onText(/\/start/, async (msg) => {
-    try {
-        bot.sendMessage(
-            msg.chat.id,
-            ` Assalomu aleykum <b> ${msg.chat.first_name}</b>, botdan to'liq foydalanish uchun iltimos telefon raqamingizni jo'nating!`,
-            {
-                reply_markup: {
-                    keyboard: [
-                        [{ text: "📞 Telefon raqam jo'natish", request_contact: true }],
-                    ],
-                    resize_keyboard: true,
-                    one_time_keyboard: true,
-                },
-                parse_mode: "HTML",
-            }
-        );
-    } catch (error) {
-        console.error("Error: " + error.message);
+// === AI yordamchi uchun flaglar ===
+let isAskingAI = {}
+
+// === /start komandasi ===
+bot.onText(/\/start/, (msg) => {
+    bot.sendMessage(
+        msg.chat.id,
+        `Assalomu aleykum <b>${msg.chat.first_name}</b>, botdan to‘liq foydalanish uchun telefon raqamingizni yuboring!`,
+        {
+            reply_markup: {
+                keyboard: [[{ text: "📞 Telefon raqam jo‘natish", request_contact: true }]],
+                resize_keyboard: true,
+                one_time_keyboard: true,
+            },
+            parse_mode: "HTML",
+        }
+    )
+})
+
+// === Kontakt yuborilganda ===
+bot.on("contact", (msg) => {
+    const fullName = `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim()
+    const username = msg.from.username || "Username ko‘rsatilmagan"
+    const phone = msg.contact.phone_number
+
+    bot.sendMessage(
+        process.env.CHANEL_ID,
+        `📥 Yangi foydalanuvchi ro‘yxatdan o‘tdi:\n\n👤 Ismi: <b>${fullName}</b>\n📞 Raqami: <b>${phone}</b>\n🌏Username: @${username}`,
+        { parse_mode: "HTML" }
+    )
+
+    bot.sendMessage(msg.chat.id, "Marhamat, quyidagilardan birini tanlashingiz mumkin!", {
+        reply_markup: {
+            keyboard: [
+                [{ text: "📱 Ijtimoiy tarmoqlar" }, { text: "🦾 AI Yordamchi" }],
+                [{ text: "📡 Fikr.log Kanali" }, { text: "📄 Resume" }]
+            ],
+            resize_keyboard: true,
+        },
+    })
+})
+
+// === Foydalanuvchi xabarlar ===
+bot.on("message", async (msg) => {
+    const chatId = msg.chat.id
+    const text = msg.text
+
+    if (!text || msg.contact) return
+
+    if (text === "📡 Fikr.log Kanali") {
+        return bot.sendPhoto(chatId, "https://ibb.co/fGvXmxvt", {
+            caption: "Kanalga qo‘shilish uchun tugmani bosing va admin tasdiqlashini kuting!⏳",
+            reply_markup: {
+                inline_keyboard: [[{ text: "📡 Kanalga o‘tish", url: "https://t.me/+bP5TvAf9eStkZThi" }]],
+            },
+        })
     }
-});
 
-// Kontakt yuborilganda
-bot.on("contact", async (msg) => {
-    try {
-        const fullName = `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim();
-        const username = msg.from.username || "Foydalanuvchi username kiritmagan!"
-        const phone = msg.contact.phone_number;
-        bot.sendMessage(process.env.CHANEL_ID, `📥 Yangi foydalanuvchi ro'yxatdan o'tdi:\n\n👤 Ismi: <b>${fullName}</b>\n📞 Raqami: <b>+${phone}</b> \n🌏Username: @${username}`, {
-            parse_mode: "HTML"
-        });
+    if (text === "📱 Ijtimoiy tarmoqlar") {
+        return bot.sendMessage(chatId, "O‘zingizga kerakli ijtimoiy tarmoqni tanlang⬇️", {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "Telegram", callback_data: "telegram" }],
+                    [{ text: "Twitter (x)", callback_data: "twitter" }],
+                    [{ text: "Linkedin", callback_data: "linkedin" }],
+                    [{ text: "GitHub", callback_data: "github" }],
+                    [{ text: "Instagram", callback_data: "instagram" }],
+                    [{ text: "Facebook", callback_data: "facebook" }],
+                ],
+            },
+        })
+    }
 
-        bot.sendMessage(msg.chat.id, "Marxamat, quyidagilardan birini tanlashingiz mumkin!", {
+    if (text === "📄 Resume") {
+        const filePath = path.join(__dirname, "resume.pdf")
+        await bot.sendMessage(chatId, "⏳ Iltimos kuting, rezume yuklanmoqda...")
+
+        try {
+            return bot.sendDocument(chatId, filePath, {
+                caption: "📄Ixlosbek Erkinov's resume",
+                reply_markup: {
+                    inline_keyboard: [[{ text: "⬅️ Ortga", callback_data: "back_to_menuy" }]],
+                },
+            })
+        } catch (error) {
+            console.error("AI xatolik:", error.message)
+            await bot.sendMessage(chatId, "❌ Rezume yuklashda xatolik yuz berdi.")
+        }
+    }
+
+    if (text === "🦾 AI Yordamchi") {
+        isAskingAI[chatId] = true
+        return bot.sendMessage(chatId, "Marhamat, savolingizni yozing. AI yordamchi javob beradi.")
+    }
+
+    // === AI uchun savol yuborilganda ===
+    if (isAskingAI[chatId]) {
+        isAskingAI[chatId] = false
+
+        await bot.sendMessage(chatId, "⏳ Iltimos kuting, javob yozilmoqda...")
+
+        try {
+            const result = await model.generateContent(text)
+            const response = result.response.text()
+
+            await bot.sendMessage(chatId, response, { parse_mode: "Markdown" })
+
+            await bot.sendMessage(chatId, "🧠 Yana savolingiz bormi?", {
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: "🔁 Yana savolim bor", callback_data: "ask_again" }],
+                        [{ text: "🔙 Ortga", callback_data: "back_to_menu" }],
+                    ],
+                },
+            })
+        } catch (error) {
+            console.error("AI xatolik:", error.message)
+            await bot.sendMessage(chatId, "❌ Javob olishda xatolik yuz berdi.")
+        }
+    }
+})
+
+// === Callback tugmalar ===
+bot.on("callback_query", async (query) => {
+    const chatId = query.message.chat.id
+    const data = query.data
+
+    // 1. AI Yordamchi tugmalari
+    if (data === "ask_again") {
+        isAskingAI[chatId] = true
+        await bot.deleteMessage(chatId, query.message.message_id)
+        return bot.sendMessage(chatId, "Marhamat, savolingizni yozing:")
+    }
+
+    if (data === "back_to_menu") {
+        await bot.deleteMessage(chatId, query.message.message_id)
+        return bot.sendMessage(chatId, "Marhamat, quyidagilardan birini tanlashingiz mumkin!", {
             reply_markup: {
                 keyboard: [
-                    [{ text: "📱 Ijtimoiy tarmoqlar" }],
-                    [{ text: "📡 Fikr.log Kanali" }],
-                    [{ text: "🦾 AI Yordamchi" }],
+                    [{ text: "📱 Ijtimoiy tarmoqlar" }, { text: "🦾 AI Yordamchi" }],
+                    [{ text: "📡 Fikr.log Kanali" }, { text: "📄 Resume" }]
                 ],
                 resize_keyboard: true,
             },
-        });
-    } catch (error) {
-        console.error("Error: " + error.message);
+        })
     }
-});
 
-// Message listener
-bot.on("message", async (msg) => {
-    const chatId = msg.chat.id;
+    // 2. Ijtimoiy tarmoqlar
+    const responses = {
+        telegram: {
+            caption: "Telegram",
+            url: "https://t.me/ix1osbek",
+            photo: "https://ibb.co/twkLbdHC",
+        },
+        github: {
+            caption: "GitHub",
+            url: "https://github.com/ix1osbek",
+            photo: "https://ibb.co/6cYTKK7S",
+        },
+        twitter: {
+            caption: "Twitter",
+            url: "https://x.com/erk1nov_i",
+            photo: "https://ibb.co/6Rxc5t2g",
+        },
+        linkedin: {
+            caption: "Linkedin",
+            url: "https://www.linkedin.com/in/ixlosbek-erkinov-519a5a358?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app",
+            photo: "https://ibb.co/HTQVc1hm",
+        },
+    }
 
-    if (msg.text === "📡 Fikr.log Kanali") {
-        bot.sendPhoto(chatId, "https://ibb.co/fGvXmxvt", {
-            caption: "Kanalga qo'shilish uchun tugmani bosing va admin tasdiqlashini kuting!⏳",
+    if (data in responses) {
+        const { caption, url, photo } = responses[data]
+        return bot.sendPhoto(chatId, photo, {
+            caption,
             reply_markup: {
                 inline_keyboard: [
-                    [{ text: "📡 Kanalga o'tish", url: "https://t.me/+bP5TvAf9eStkZThi" }],
+                    [{ text: caption, url }],
+                    [{ text: "⬅️ Ortga", callback_data: "back_to_social" }],
                 ],
             },
-        });
+        })
     }
 
-    if (msg.text === "📱 Ijtimoiy tarmoqlar") {
-        bot.sendMessage(chatId, "O'zingizga kerakli ijtimoiy tarmoqni tanlang⬇️", {
+    if (data === "instagram" || data === "facebook") {
+        return bot.answerCallbackQuery(query.id, {
+            text: "Hozirda bu tarmoqda faoliyat olib bormayapman 🙁",
+            show_alert: true,
+        })
+    }
+
+    if (data === "back_to_social") {
+        await bot.deleteMessage(chatId, query.message.message_id)
+        return bot.sendMessage(chatId, "O‘zingizga kerakli ijtimoiy tarmoqni tanlang⬇️", {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: "Telegram", callback_data: "telegram" }],
                     [{ text: "GitHub", callback_data: "github" }],
                     [{ text: "Instagram", callback_data: "instagram" }],
                     [{ text: "Facebook", callback_data: "facebook" }],
+                    [{ text: "Twitter (x)", callback_data: "twitter" }],
+                    [{ text: "Linkedin", callback_data: "linkedin" }],
                 ],
             },
-        });
-    }
-
-
-    //////// AI uchun
-
-    if (msg.text === "🦾 AI Yordamchi") {
-        await bot.sendMessage(chatId, "Marhamat savolingiz bo'lsa yo'llang sizga AI yordamchi javob beradi.")
-        bot.on("message", async (msg) => {
-            const chatId = msg.chat.id
-            const userText = msg.text
-            await bot.sendMessage(chatId, "✳️Iltimos kuting, javob yozilmoqda...");
-
-            try {
-                const result = await model.generateContent(userText);
-                const response = result.response.text();
-                await bot.sendMessage(chatId, response, {
-                  parse_mode: "Markdown"
-                });
-            } catch (error) {
-                console.error("Xatolik:", error.message);
-                await bot.sendMessage(chatId, "❌ Javob olishda xatolik yuz berdi.");
-            }
         })
     }
-});
 
-// Callbacklar
-bot.on("callback_query", async (query) => {
-    const chatId = query.message.chat.id;
-
-    try {
-        if (query.data === "telegram") {
-            bot.sendPhoto(chatId, "https://ibb.co/twkLbdHC", {
-                caption: "Telegram",
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: "Telegram", url: "https://t.me/ix1osbek" }],
-                        [{ text: "⬅️ Ortga", callback_data: "back_to_social" }],
-                    ],
-                },
-            });
-        }
-
-        if (query.data === "github") {
-            bot.sendPhoto(chatId, "https://ibb.co/6cYTKK7S", {
-                caption: "GitHub",
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: "GitHub", url: "https://github.com/ix1osbek" }],
-                        [{ text: "⬅️ Ortga", callback_data: "back_to_social" }],
-                    ],
-                },
-            });
-        }
-
-        if (query.data === "instagram" || query.data === "facebook") {
-            bot.answerCallbackQuery(query.id, {
-                text: "Hozirda bu tarmoqda faoliyat olib bormayapman 🙁",
-                show_alert: true,
-            });
-        }
-
-        if (query.data === "back_to_social") {
-            bot.deleteMessage(chatId, query.message.message_id);
-            bot.sendMessage(chatId, "O'zingizga kerakli ijtimoiy tarmoqni tanlang⬇️", {
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: "Telegram", callback_data: "telegram" }], [{ text: "GitHub", callback_data: "github" }],
-                        [{ text: "Instagram", callback_data: "instagram" }],
-                        [{ text: "Facebook", callback_data: "facebook" }],
-                    ],
-                },
-            });
-        }
-    } catch (error) {
-        console.error("Callback error:", error.message);
+    if (data === "back_to_menuy") {
+        // Callback tugmasi bosilganda oldingi xabarni o'chirish
+        await bot.deleteMessage(chatId, query.message.message_id)
+        return bot.sendMessage(chatId, "Marhamat, quyidagilardan birini tanlashingiz mumkin!", {
+            reply_markup: {
+                keyboard: [
+                    [{ text: "📱 Ijtimoiy tarmoqlar" }, { text: "🦾 AI Yordamchi" }],
+                    [{ text: "📡 Fikr.log Kanali" }, { text: "📄 Resume" }]
+                ],
+                resize_keyboard: true,
+            },
+        })
     }
-});
+})
