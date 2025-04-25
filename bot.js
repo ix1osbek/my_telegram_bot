@@ -5,7 +5,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai")
 const path = require("path")
 
 const app = express()
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT
 
 app.get("/", (req, res) => {
     res.send("Bot ishga tushdi!")
@@ -47,7 +47,7 @@ bot.on("contact", (msg) => {
 
     bot.sendMessage(
         process.env.CHANEL_ID,
-        `📥 Yangi foydalanuvchi ro‘yxatdan o‘tdi:\n\n👤 Ismi: <b>${fullName}</b>\n📞 Raqami: <b>${phone}</b>\n🌏Username: @${username}`,
+        `📥 Yangi foydalanuvchi ro‘yxatdan o‘tdi:\n\n👤 Ismi: <b>${fullName}</b>\n📞 Raqami: <b>+${phone}</b>\n🌏Username: @${username}`,
         { parse_mode: "HTML" }
     )
 
@@ -228,7 +228,6 @@ bot.on("callback_query", async (query) => {
     }
 
     if (data === "back_to_menuy") {
-        // Callback tugmasi bosilganda oldingi xabarni o'chirish
         await bot.deleteMessage(chatId, query.message.message_id)
         return bot.sendMessage(chatId, "Marhamat, quyidagilardan birini tanlashingiz mumkin!", {
             reply_markup: {
