@@ -137,7 +137,7 @@ bot.on("message", async (msg) => {
             })
         } catch (error) {
             console.error("AI xatolik:", error.message)
-            await bot.sendMessage(chatId, "❌ Javob olishda xatolik yuz berdi.")
+            await bot.sendMessage(chatId, "❌ Javob olishda xatolik yuz berdi. Iltimos birozdan so'ng urinib ko'ring!")
         }
     }
 })
