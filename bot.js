@@ -217,11 +217,11 @@ bot.on("callback_query", async (query) => {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: "Telegram", callback_data: "telegram" }],
+                    [{ text: "Twitter (x)", callback_data: "twitter" }],
+                    [{ text: "Linkedin", callback_data: "linkedin" }],
                     [{ text: "GitHub", callback_data: "github" }],
                     [{ text: "Instagram", callback_data: "instagram" }],
                     [{ text: "Facebook", callback_data: "facebook" }],
-                    [{ text: "Twitter (x)", callback_data: "twitter" }],
-                    [{ text: "Linkedin", callback_data: "linkedin" }],
                 ],
             },
         })
