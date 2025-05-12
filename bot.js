@@ -123,7 +123,7 @@ bot.on("message", async (msg) => {
 
         try {
             const result = await model.generateContent(text)
-            const response = result.response.text()
+               const response = result.response.text()
 
             await bot.sendMessage(chatId, response, { parse_mode: "Markdown" })
 
