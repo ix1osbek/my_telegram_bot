@@ -18,7 +18,7 @@ app.listen(PORT, () => {
 // === Bot va AI setup ===
 const bot = new TelegramBot(process.env.TOKEN, { polling: true })
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-pro-latest" })
+const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-001' })
 
 // === AI yordamchi uchun flaglar ===
 let isAskingAI = {}
