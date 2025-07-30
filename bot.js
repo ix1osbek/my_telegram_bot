@@ -3,6 +3,7 @@ const TelegramBot = require("node-telegram-bot-api")
 const express = require("express")
 const { GoogleGenerativeAI } = require("@google/generative-ai")
 const path = require("path")
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args)) // 🛠 Yangiliklar API uchun fetch
 
 const app = express()
 const PORT = process.env.PORT
@@ -55,7 +56,8 @@ bot.on("contact", (msg) => {
         reply_markup: {
             keyboard: [
                 [{ text: "📱 Ijtimoiy tarmoqlar" }, { text: "🦾 AI Yordamchi" }],
-                [{ text: "📡 Fikr.log Kanali" }, { text: "📄 Resume" }]
+                [{ text: "🗞 TOP-3 World News" }, { text: "📡 Fikr.log Kanali" }],
+                [{ text: "📄 Resume" }]
             ],
             resize_keyboard: true,
         },
@@ -115,6 +117,54 @@ bot.on("message", async (msg) => {
         return bot.sendMessage(chatId, "Marhamat, savolingizni yozing. AI yordamchi javob beradi.")
     }
 
+    // === 🗞 Yangiliklar bo‘limi ===
+    if (text === "🗞 TOP-3 World News") {
+        const API_KEY = process.env.GNEWS_API_KEY
+        const url = `https://gnews.io/api/v4/top-headlines?lang=en&max=3&token=${API_KEY}`
+
+        try {
+            const response = await fetch(url)
+            const data = await response.json()
+
+            if (!data.articles || data.articles.length === 0) {
+                return bot.sendMessage(chatId, "Hozircha yangiliklar topilmadi.")
+            }
+
+            for (let article of data.articles) {
+                const date = new Date(article.publishedAt)
+                const formattedTime = date.toLocaleString("uz-UZ", {
+                    timeZone: "Asia/Tashkent", // ✅ O‘zbekiston vaqti
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric"
+                })
+
+                const message = `
+📰 <b>${article.title}</b>
+
+${article.description || "Batafsil ma'lumot quyidagi havolada:"}
+
+📅 <b>Chiqarilgan:</b> ${formattedTime} (O'zbekiston vaqti bilan)
+🔗 <a href="${article.url}">To‘liq o‘qish</a>
+🗞 Manba: ${article.source.name}
+            `.trim()
+
+                await bot.sendPhoto(chatId, article.image || 'https://via.placeholder.com/400x200.png?text=No+Image', {
+                    caption: message,
+                    parse_mode: "HTML"
+                })
+            }
+
+        } catch (error) {
+            console.error("❌ API xatoligi:", error.message)
+            bot.sendMessage(chatId, "❌ Yangiliklarni yuklashda xatolik yuz berdi.")
+        }
+    }
+
+
+
     // === AI uchun savol yuborilganda ===
     if (isAskingAI[chatId]) {
         isAskingAI[chatId] = false
@@ -123,7 +173,7 @@ bot.on("message", async (msg) => {
 
         try {
             const result = await model.generateContent(text)
-               const response = result.response.text()
+            const response = result.response.text()
 
             await bot.sendMessage(chatId, response, { parse_mode: "Markdown" })
 
@@ -147,27 +197,26 @@ bot.on("callback_query", async (query) => {
     const chatId = query.message.chat.id
     const data = query.data
 
-    // 1. AI Yordamchi tugmalari
     if (data === "ask_again") {
         isAskingAI[chatId] = true
         await bot.deleteMessage(chatId, query.message.message_id)
         return bot.sendMessage(chatId, "Marhamat, savolingizni yozing:")
     }
 
-    if (data === "back_to_menu") {
+    if (data === "back_to_menu" || data === "back_to_menuy") {
         await bot.deleteMessage(chatId, query.message.message_id)
         return bot.sendMessage(chatId, "Marhamat, quyidagilardan birini tanlashingiz mumkin!", {
             reply_markup: {
                 keyboard: [
                     [{ text: "📱 Ijtimoiy tarmoqlar" }, { text: "🦾 AI Yordamchi" }],
-                    [{ text: "📡 Fikr.log Kanali" }, { text: "📄 Resume" }]
+                    [{ text: "🗞 Yangiliklar" }, { text: "📡 Fikr.log Kanali" }],
+                    [{ text: "📄 Resume" }]
                 ],
                 resize_keyboard: true,
             },
         })
     }
 
-    // 2. Ijtimoiy tarmoqlar
     const responses = {
         telegram: {
             caption: "Telegram",
@@ -223,19 +272,6 @@ bot.on("callback_query", async (query) => {
                     [{ text: "Instagram", callback_data: "instagram" }],
                     [{ text: "Facebook", callback_data: "facebook" }],
                 ],
-            },
-        })
-    }
-
-    if (data === "back_to_menuy") {
-        await bot.deleteMessage(chatId, query.message.message_id)
-        return bot.sendMessage(chatId, "Marhamat, quyidagilardan birini tanlashingiz mumkin!", {
-            reply_markup: {
-                keyboard: [
-                    [{ text: "📱 Ijtimoiy tarmoqlar" }, { text: "🦾 AI Yordamchi" }],
-                    [{ text: "📡 Fikr.log Kanali" }, { text: "📄 Resume" }]
-                ],
-                resize_keyboard: true,
             },
         })
     }
